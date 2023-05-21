@@ -9,7 +9,7 @@ contract FundMe {
 
     address payable public immutable i_owner;
     uint256 public constant MIN_USD = 50 * 1e18;
-
+    AggregatorV3Interface agregator;
     enum State {
         Withdrawn,
         Active
@@ -24,8 +24,9 @@ contract FundMe {
 
     mapping(address => FundObj) foundsByFounder;
 
-    constructor() {
+    constructor(address agregatorAddress) {
         i_owner = payable(msg.sender);
+        agregator = AggregatorV3Interface(agregatorAddress);
     }
 
     error NotEnoughDonation();
@@ -40,7 +41,7 @@ contract FundMe {
     }
 
     function fund() public payable {
-        uint256 foundUSD = msg.value.getConvertionRate();
+        uint256 foundUSD = msg.value.getConvertionRate(agregator);
         if (foundUSD < MIN_USD) revert NotEnoughDonation();
 
         if (!founderExists(msg.sender)) founders.push(msg.sender);
