@@ -7,6 +7,7 @@ import "dotenv/config";
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL!;
 const METAMASK_PRIVATE_KEY = process.env.METAMASK_PRIVATE_KEY!;
 const COINMARKET_API_KEY = process.env.COINMARKET_API_KEY!;
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY!;
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   networks: {
@@ -36,7 +37,9 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-  //@ts-ignore
+  etherscan: {
+    apiKey: ETHERSCAN_API_KEY,
+  },
   namedAccounts: {
     deployer: { default: 0 },
     user: {
