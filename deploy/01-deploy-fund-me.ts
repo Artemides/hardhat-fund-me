@@ -23,14 +23,14 @@ module.exports = async (hre: HardhatRuntimeEnvironment) => {
     from: deployer,
     args: [ethUsdPriceFeeedAddress],
     log: true,
+    waitConfirmations: 5,
   });
 
   if (
     !developmentChains.includes(network.name) &&
     process.env.ETHERSCAN_API_KEY
   ) {
-    verify(fundMe.address, [ethUsdPriceFeeedAddress]);
-    log("Contract verified");
+    await verify(fundMe.address, [ethUsdPriceFeeedAddress]);
   }
 };
 module.exports.tags = ["all", "fundme"];
