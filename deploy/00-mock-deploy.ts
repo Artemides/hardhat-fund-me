@@ -1,4 +1,3 @@
-import { network } from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 const DECIMALS = "18";

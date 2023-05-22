@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { developmentChains, networkConfig } from "../hardhat.config.helper";
+import { verify } from "../utils/contract-verify";
 
 module.exports = async (hre: HardhatRuntimeEnvironment) => {
   const { getNamedAccounts, deployments, network } = hre;
@@ -22,6 +23,14 @@ module.exports = async (hre: HardhatRuntimeEnvironment) => {
     from: deployer,
     args: [ethUsdPriceFeeedAddress],
     log: true,
+    waitConfirmations: 5,
   });
+
+  if (
+    !developmentChains.includes(network.name) &&
+    process.env.ETHERSCAN_API_KEY
+  ) {
+    await verify(fundMe.address, [ethUsdPriceFeeedAddress]);
+  }
 };
 module.exports.tags = ["all", "fundme"];
