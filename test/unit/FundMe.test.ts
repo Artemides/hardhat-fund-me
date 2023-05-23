@@ -56,7 +56,14 @@ describe("Fundme test", async () => {
     beforeEach(async () => {
       await fundMe.fund({ value: ethers.utils.parseEther("1") });
     });
+    it("Allow only the owner to withdraw", async () => {
+      const accounts = await ethers.getSigners();
+      const randomAccountIndex = Math.floor(Math.random() * accounts.length);
+      const someAccount = accounts[randomAccountIndex];
 
+      const fundMeConnected = fundMe.connect(someAccount);
+      await expect(fundMeConnected.withdraw()).to.be.rejectedWith("NotOwner");
+    });
     it("Withdraws from a single funder", async () => {
       const currentOwnerBalance = await ethers.provider.getBalance(deployer);
       const currentFundMeBalance = await fundMe.provider.getBalance(
