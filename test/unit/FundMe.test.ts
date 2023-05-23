@@ -108,6 +108,15 @@ describe("Fundme test", async () => {
         currentFundMeBalance.add(currentOwnerBalance).toString(),
         updatedOwnerBalance.add(gasCost).toString()
       );
+
+      await Promise.all(
+        accounts.map(async (account) => {
+          const [, availableFunds] = await fundMe.foundsByFounder(
+            account.address
+          );
+          assert.equal(availableFunds.toString(), "0");
+        })
+      );
     });
   });
 });

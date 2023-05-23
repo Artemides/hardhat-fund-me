@@ -72,7 +72,7 @@ contract FundMe {
         ) {
             FundObj memory currentFund = foundsByFounder[founders[founderIdx]];
             ammount += currentFund.avaiableFund;
-            currentFund.avaiableFund = 0;
+            foundsByFounder[founders[founderIdx]].avaiableFund = 0;
         }
 
         (bool success, ) = payable(msg.sender).call{
