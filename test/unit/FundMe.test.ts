@@ -29,8 +29,26 @@ describe("Fundme test", async () => {
       );
     });
 
-    it("adds the founder into the funders list if he funds only the first time", async () => {
+    it("adds the funder only once into the funders list", async () => {
       await fundMe.fund({ value: ethers.utils.parseEther("1") });
+      await fundMe.fund({ value: ethers.utils.parseEther("1") });
+      await fundMe.fund({ value: ethers.utils.parseEther("1") });
+      const [, timesFunderAddedIntoFundersList] = await fundMe.founderExists(
+        deployer
+      );
+      assert.equal(timesFunderAddedIntoFundersList.toString(), "1");
+    });
+
+    it("icreases the funder's ammount each funding", async () => {
+      const ammountToFund = ethers.utils.parseEther("1");
+      const [currentFounderFunds] = await fundMe.foundsByFounder(deployer);
+      await fundMe.fund({ value: ammountToFund });
+      const [updatedFunderFunds] = await fundMe.foundsByFounder(deployer);
+
+      assert.equal(
+        updatedFunderFunds.toString(),
+        currentFounderFunds.add(ammountToFund).toString()
+      );
     });
   });
 });

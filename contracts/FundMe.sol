@@ -28,7 +28,7 @@ contract FundMe {
 
     address[] public founders;
 
-    mapping(address => FundObj) foundsByFounder;
+    mapping(address => FundObj) public foundsByFounder;
 
     event AccountFunder();
     event FoundsWithdrawn();
@@ -56,9 +56,10 @@ contract FundMe {
      */
     function fund() public payable {
         uint256 foundUSD = msg.value.getConvertionRate(agregator);
+        (bool founderAdded, ) = founderExists(msg.sender);
         if (foundUSD < MIN_USD) revert NotEnoughDonation();
 
-        if (!founderExists(msg.sender)) founders.push(msg.sender);
+        if (!founderAdded) founders.push(msg.sender);
 
         foundsByFounder[msg.sender].ammount += msg.value;
         foundsByFounder[msg.sender].state = State.Active;
@@ -92,16 +93,22 @@ contract FundMe {
      * @notice find the founder for the purpuse of adding him again or not into the founders list
      * @param _founder: if the founder exist
      */
-    function founderExists(address _founder) internal view returns (bool) {
+    function founderExists(
+        address _founder
+    ) public view returns (bool, uint256) {
         bool exists = false;
+        uint256 times;
         for (
             uint256 founderIdx = 0;
             founderIdx < founders.length;
             founderIdx++
         ) {
-            if (founders[founderIdx] == _founder) exists = true;
+            if (founders[founderIdx] == _founder) {
+                exists = true;
+                times++;
+            }
         }
-        return exists;
+        return (exists, times);
     }
 
     receive() external payable {
