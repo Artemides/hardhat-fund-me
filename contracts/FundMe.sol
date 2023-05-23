@@ -14,7 +14,7 @@ contract FundMe {
     using ConvertCurrency for uint256;
     address payable public immutable i_owner;
     uint256 public constant MIN_USD = 50 * 1e18;
-    AggregatorV3Interface agregator;
+    AggregatorV3Interface public agregator;
 
     enum State {
         Withdrawn,
