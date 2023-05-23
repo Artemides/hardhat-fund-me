@@ -51,4 +51,63 @@ describe("Fundme test", async () => {
       );
     });
   });
+
+  describe("withdraw", async () => {
+    beforeEach(async () => {
+      await fundMe.fund({ value: ethers.utils.parseEther("1") });
+    });
+
+    it("Withdraws from a single funder", async () => {
+      const currentOwnerBalance = await ethers.provider.getBalance(deployer);
+      const currentFundMeBalance = await fundMe.provider.getBalance(
+        fundMe.address
+      );
+
+      const transactionResponse = await fundMe.withdraw();
+      const { gasUsed, effectiveGasPrice } = await transactionResponse.wait(1);
+      const gasCost = gasUsed.mul(effectiveGasPrice);
+
+      const updatedOwnerBalance = await ethers.provider.getBalance(deployer);
+      const updatedFundMeBalance = await fundMe.provider.getBalance(
+        fundMe.address
+      );
+
+      assert.equal(updatedFundMeBalance.toString(), "0");
+      assert.equal(
+        currentFundMeBalance.add(currentOwnerBalance).toString(),
+        updatedOwnerBalance.add(gasCost).toString()
+      );
+    });
+
+    it("Withdraws from multiple funders", async () => {
+      const accounts = await ethers.getSigners();
+
+      await Promise.all(
+        accounts.map(async (account) => {
+          const sigleFundMe = fundMe.connect(account);
+          await sigleFundMe.fund({ value: ethers.utils.parseEther("1") });
+        })
+      );
+
+      const currentOwnerBalance = await ethers.provider.getBalance(deployer);
+      const currentFundMeBalance = await fundMe.provider.getBalance(
+        fundMe.address
+      );
+
+      const transactionResponse = await fundMe.withdraw();
+      const { gasUsed, effectiveGasPrice } = await transactionResponse.wait(1);
+      const gasCost = gasUsed.mul(effectiveGasPrice);
+
+      const updatedOwnerBalance = await ethers.provider.getBalance(deployer);
+      const updatedFundMeBalance = await fundMe.provider.getBalance(
+        fundMe.address
+      );
+
+      assert.equal(updatedFundMeBalance.toString(), "0");
+      assert.equal(
+        currentFundMeBalance.add(currentOwnerBalance).toString(),
+        updatedOwnerBalance.add(gasCost).toString()
+      );
+    });
+  });
 });

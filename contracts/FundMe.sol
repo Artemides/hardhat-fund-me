@@ -16,21 +16,15 @@ contract FundMe {
     uint256 public constant MIN_USD = 50 * 1e18;
     AggregatorV3Interface public agregator;
 
-    enum State {
-        Withdrawn,
-        Active
-    }
-
     struct FundObj {
-        uint256 ammount;
-        State state;
+        uint256 totalFunds;
+        uint256 avaiableFund;
     }
 
     address[] public founders;
 
     mapping(address => FundObj) public foundsByFounder;
 
-    event AccountFunder();
     event FoundsWithdrawn();
 
     error NotEnoughDonation();
@@ -61,8 +55,8 @@ contract FundMe {
 
         if (!founderAdded) founders.push(msg.sender);
 
-        foundsByFounder[msg.sender].ammount += msg.value;
-        foundsByFounder[msg.sender].state = State.Active;
+        foundsByFounder[msg.sender].totalFunds += msg.value;
+        foundsByFounder[msg.sender].avaiableFund += msg.value;
     }
 
     /**
@@ -77,8 +71,8 @@ contract FundMe {
             founderIdx++
         ) {
             FundObj memory currentFund = foundsByFounder[founders[founderIdx]];
-            if (currentFund.state == State.Active)
-                ammount += currentFund.ammount;
+            ammount += currentFund.avaiableFund;
+            currentFund.avaiableFund = 0;
         }
 
         (bool success, ) = payable(msg.sender).call{
