@@ -12,25 +12,18 @@ import "./ConverterCurrency.sol";
 
 contract FundMe {
     using ConvertCurrency for uint256;
-    address payable public immutable i_owner;
-    uint256 public constant MIN_USD = 50 * 1e18;
-    AggregatorV3Interface agregator;
 
-    enum State {
-        Withdrawn,
-        Active
-    }
+    address payable private immutable i_owner;
+    uint256 private constant MIN_USD = 50 * 1e18;
+    AggregatorV3Interface internal s_agregator;
+    address[] private s_founders;
+    mapping(address => FundObj) private s_foundsByFounder;
 
     struct FundObj {
-        uint256 ammount;
-        State state;
+        uint256 totalFunds;
+        uint256 avaiableFund;
     }
 
-    address[] public founders;
-
-    mapping(address => FundObj) foundsByFounder;
-
-    event AccountFunder();
     event FoundsWithdrawn();
 
     error NotEnoughDonation();
@@ -48,20 +41,21 @@ contract FundMe {
      */
     constructor(address agregatorAddress) {
         i_owner = payable(msg.sender);
-        agregator = AggregatorV3Interface(agregatorAddress);
+        s_agregator = AggregatorV3Interface(agregatorAddress);
     }
 
     /**
      * @notice the fund function is public for those who want to fund or donate a minimun usd as eth
      */
     function fund() public payable {
-        uint256 foundUSD = msg.value.getConvertionRate(agregator);
+        uint256 foundUSD = msg.value.getConvertionRate(s_agregator);
+        (bool founderAdded, ) = founderExists(msg.sender);
         if (foundUSD < MIN_USD) revert NotEnoughDonation();
 
-        if (!founderExists(msg.sender)) founders.push(msg.sender);
+        if (!founderAdded) s_founders.push(msg.sender);
 
-        foundsByFounder[msg.sender].ammount += msg.value;
-        foundsByFounder[msg.sender].state = State.Active;
+        s_foundsByFounder[msg.sender].totalFunds += msg.value;
+        s_foundsByFounder[msg.sender].avaiableFund += msg.value;
     }
 
     /**
@@ -72,12 +66,38 @@ contract FundMe {
         uint256 ammount;
         for (
             uint256 founderIdx = 0;
+            founderIdx < s_founders.length;
+            founderIdx++
+        ) {
+            FundObj memory currentFund = s_foundsByFounder[
+                s_founders[founderIdx]
+            ];
+            ammount += currentFund.avaiableFund;
+            s_foundsByFounder[s_founders[founderIdx]].avaiableFund = 0;
+        }
+
+        (bool success, ) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
+        if (!success) revert WithdrawFailed();
+
+        emit FoundsWithdrawn();
+    }
+
+    function withdrawCheaper() public onlyOwner {
+        uint256 ammount;
+        address[] memory founders = s_founders;
+
+        for (
+            uint256 founderIdx = 0;
             founderIdx < founders.length;
             founderIdx++
         ) {
-            FundObj memory currentFund = foundsByFounder[founders[founderIdx]];
-            if (currentFund.state == State.Active)
-                ammount += currentFund.ammount;
+            FundObj memory currentFund = s_foundsByFounder[
+                founders[founderIdx]
+            ];
+            ammount += currentFund.avaiableFund;
+            s_foundsByFounder[s_founders[founderIdx]].avaiableFund = 0;
         }
 
         (bool success, ) = payable(msg.sender).call{
@@ -92,16 +112,38 @@ contract FundMe {
      * @notice find the founder for the purpuse of adding him again or not into the founders list
      * @param _founder: if the founder exist
      */
-    function founderExists(address _founder) internal view returns (bool) {
+    function founderExists(
+        address _founder
+    ) public view returns (bool, uint256) {
         bool exists = false;
+        uint256 times;
+        address[] memory founders = s_founders;
         for (
             uint256 founderIdx = 0;
             founderIdx < founders.length;
             founderIdx++
         ) {
-            if (founders[founderIdx] == _founder) exists = true;
+            if (founders[founderIdx] == _founder) {
+                exists = true;
+                times++;
+            }
         }
-        return exists;
+        return (exists, times);
+    }
+
+    function getOwner() public view returns (address) {
+        return i_owner;
+    }
+
+    function getAgregator() public view returns (AggregatorV3Interface) {
+        return s_agregator;
+    }
+
+    function getFounderFounds(
+        address founder
+    ) public view returns (FundObj memory) {
+        FundObj memory founderFunds = s_foundsByFounder[founder];
+        return founderFunds;
     }
 
     receive() external payable {

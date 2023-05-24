@@ -21,6 +21,5 @@ const deployMocks = async (hre: HardhatRuntimeEnvironment) => {
   }
 };
 
-deployMocks.tags = ["all", "mocks"];
-
 export default deployMocks;
+deployMocks.tags = ["all", "mocks"];

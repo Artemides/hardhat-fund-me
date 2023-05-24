@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { developmentChains, networkConfig } from "../hardhat.config.helper";
 import { verify } from "../utils/contract-verify";
 
-module.exports = async (hre: HardhatRuntimeEnvironment) => {
+const deployFoundMe = async (hre: HardhatRuntimeEnvironment) => {
   const { getNamedAccounts, deployments, network } = hre;
   const { deploy, log } = deployments;
   const { deployer } = await getNamedAccounts();
@@ -23,7 +23,7 @@ module.exports = async (hre: HardhatRuntimeEnvironment) => {
     from: deployer,
     args: [ethUsdPriceFeeedAddress],
     log: true,
-    waitConfirmations: 5,
+    waitConfirmations: 1,
   });
 
   if (
@@ -33,4 +33,5 @@ module.exports = async (hre: HardhatRuntimeEnvironment) => {
     await verify(fundMe.address, [ethUsdPriceFeeedAddress]);
   }
 };
-module.exports.tags = ["all", "fundme"];
+export default deployFoundMe;
+deployFoundMe.tags = ["all", "fundme"];
