@@ -14,16 +14,16 @@ contract FundMe {
     using ConvertCurrency for uint256;
     address payable public immutable i_owner;
     uint256 public constant MIN_USD = 50 * 1e18;
-    AggregatorV3Interface public agregator;
+    AggregatorV3Interface public s_agregator;
 
     struct FundObj {
         uint256 totalFunds;
         uint256 avaiableFund;
     }
 
-    address[] public founders;
+    address[] public s_founders;
 
-    mapping(address => FundObj) public foundsByFounder;
+    mapping(address => FundObj) public s_foundsByFounder;
 
     event FoundsWithdrawn();
 
@@ -42,21 +42,21 @@ contract FundMe {
      */
     constructor(address agregatorAddress) {
         i_owner = payable(msg.sender);
-        agregator = AggregatorV3Interface(agregatorAddress);
+        s_agregator = AggregatorV3Interface(agregatorAddress);
     }
 
     /**
      * @notice the fund function is public for those who want to fund or donate a minimun usd as eth
      */
     function fund() public payable {
-        uint256 foundUSD = msg.value.getConvertionRate(agregator);
+        uint256 foundUSD = msg.value.getConvertionRate(s_agregator);
         (bool founderAdded, ) = founderExists(msg.sender);
         if (foundUSD < MIN_USD) revert NotEnoughDonation();
 
-        if (!founderAdded) founders.push(msg.sender);
+        if (!founderAdded) s_founders.push(msg.sender);
 
-        foundsByFounder[msg.sender].totalFunds += msg.value;
-        foundsByFounder[msg.sender].avaiableFund += msg.value;
+        s_foundsByFounder[msg.sender].totalFunds += msg.value;
+        s_foundsByFounder[msg.sender].avaiableFund += msg.value;
     }
 
     /**
@@ -67,12 +67,38 @@ contract FundMe {
         uint256 ammount;
         for (
             uint256 founderIdx = 0;
+            founderIdx < s_founders.length;
+            founderIdx++
+        ) {
+            FundObj memory currentFund = s_foundsByFounder[
+                s_founders[founderIdx]
+            ];
+            ammount += currentFund.avaiableFund;
+            s_foundsByFounder[s_founders[founderIdx]].avaiableFund = 0;
+        }
+
+        (bool success, ) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
+        if (!success) revert WithdrawFailed();
+
+        emit FoundsWithdrawn();
+    }
+
+    function withdrawCheaper() public onlyOwner {
+        uint256 ammount;
+        address[] memory founders = s_founders;
+
+        for (
+            uint256 founderIdx = 0;
             founderIdx < founders.length;
             founderIdx++
         ) {
-            FundObj memory currentFund = foundsByFounder[founders[founderIdx]];
+            FundObj memory currentFund = s_foundsByFounder[
+                founders[founderIdx]
+            ];
             ammount += currentFund.avaiableFund;
-            foundsByFounder[founders[founderIdx]].avaiableFund = 0;
+            s_foundsByFounder[s_founders[founderIdx]].avaiableFund = 0;
         }
 
         (bool success, ) = payable(msg.sender).call{
@@ -92,6 +118,7 @@ contract FundMe {
     ) public view returns (bool, uint256) {
         bool exists = false;
         uint256 times;
+        address[] memory founders = s_founders;
         for (
             uint256 founderIdx = 0;
             founderIdx < founders.length;
