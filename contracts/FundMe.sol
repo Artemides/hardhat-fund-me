@@ -12,18 +12,17 @@ import "./ConverterCurrency.sol";
 
 contract FundMe {
     using ConvertCurrency for uint256;
-    address payable public immutable i_owner;
-    uint256 public constant MIN_USD = 50 * 1e18;
-    AggregatorV3Interface public s_agregator;
+
+    address payable private immutable i_owner;
+    uint256 private constant MIN_USD = 50 * 1e18;
+    AggregatorV3Interface internal s_agregator;
+    address[] private s_founders;
+    mapping(address => FundObj) private s_foundsByFounder;
 
     struct FundObj {
         uint256 totalFunds;
         uint256 avaiableFund;
     }
-
-    address[] public s_founders;
-
-    mapping(address => FundObj) public s_foundsByFounder;
 
     event FoundsWithdrawn();
 
@@ -130,6 +129,21 @@ contract FundMe {
             }
         }
         return (exists, times);
+    }
+
+    function getOwner() public view returns (address) {
+        return i_owner;
+    }
+
+    function getAgregator() public view returns (AggregatorV3Interface) {
+        return s_agregator;
+    }
+
+    function getFounderFounds(
+        address founder
+    ) public view returns (FundObj memory) {
+        FundObj memory founderFunds = s_foundsByFounder[founder];
+        return founderFunds;
     }
 
     receive() external payable {

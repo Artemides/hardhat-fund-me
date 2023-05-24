@@ -17,7 +17,7 @@ describe("Fundme test", async () => {
 
   describe("contructor", async () => {
     it("sets correctly the pricefeed address", async () => {
-      const priceFeedAddress = await fundMe.agregator();
+      const priceFeedAddress = await fundMe.getAgregator();
       assert.equal(priceFeedAddress, MockV3Aggregator.address);
     });
   });
@@ -41,9 +41,9 @@ describe("Fundme test", async () => {
 
     it("icreases the funder's ammount each funding", async () => {
       const ammountToFund = ethers.utils.parseEther("1");
-      const [currentFounderFunds] = await fundMe.foundsByFounder(deployer);
+      const [currentFounderFunds] = await fundMe.getFounderFounds(deployer);
       await fundMe.fund({ value: ammountToFund });
-      const [updatedFunderFunds] = await fundMe.foundsByFounder(deployer);
+      const [updatedFunderFunds] = await fundMe.getFounderFounds(deployer);
 
       assert.equal(
         updatedFunderFunds.toString(),
@@ -118,7 +118,47 @@ describe("Fundme test", async () => {
 
       await Promise.all(
         accounts.map(async (account) => {
-          const [, availableFunds] = await fundMe.foundsByFounder(
+          const [, availableFunds] = await fundMe.getFounderFounds(
+            account.address
+          );
+          assert.equal(availableFunds.toString(), "0");
+        })
+      );
+    });
+
+    it("Withdraws cheaper", async () => {
+      const accounts = await ethers.getSigners();
+
+      await Promise.all(
+        accounts.map(async (account) => {
+          const sigleFundMe = fundMe.connect(account);
+          await sigleFundMe.fund({ value: ethers.utils.parseEther("1") });
+        })
+      );
+
+      const currentOwnerBalance = await ethers.provider.getBalance(deployer);
+      const currentFundMeBalance = await fundMe.provider.getBalance(
+        fundMe.address
+      );
+
+      const transactionResponse = await fundMe.withdrawCheaper();
+      const { gasUsed, effectiveGasPrice } = await transactionResponse.wait(1);
+      const gasCost = gasUsed.mul(effectiveGasPrice);
+
+      const updatedOwnerBalance = await ethers.provider.getBalance(deployer);
+      const updatedFundMeBalance = await fundMe.provider.getBalance(
+        fundMe.address
+      );
+
+      assert.equal(updatedFundMeBalance.toString(), "0");
+      assert.equal(
+        currentFundMeBalance.add(currentOwnerBalance).toString(),
+        updatedOwnerBalance.add(gasCost).toString()
+      );
+
+      await Promise.all(
+        accounts.map(async (account) => {
+          const [, availableFunds] = await fundMe.getFounderFounds(
             account.address
           );
           assert.equal(availableFunds.toString(), "0");
