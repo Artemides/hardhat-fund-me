@@ -1,7 +1,11 @@
 import { Contract } from "ethers";
-import { deployments, ethers, getNamedAccounts } from "hardhat";
+import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 import { FundMe, MockV3Aggregator } from "../../typechain-types";
 import { assert, expect } from "chai";
+import { developmentChains } from "../../hardhat.config.helper";
+
+!developmentChains.includes(network.name) && describe.skip;
+
 describe("Fundme test", async () => {
   let fundMe: FundMe;
   let deployer: string;
